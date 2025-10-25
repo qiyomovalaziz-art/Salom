@@ -175,37 +175,38 @@ async def cmd_start(message: types.Message):
 # /my_orders va boshqa handlerlar (qismlar birlashtirilgan)
 # --------------------
 
-@dp.message_handler(lambda m: m.text == "📋 Mening buyurtmalarim")
-async def my_orders_handler(message: types.Message):
-    uid = message.from_user.id
-    uid_str = str(uid)
-    ensure_user(uid, message.from_user)
-    user = users.get(uid_str, {})
-    user_orders_ids = user.get("orders", [])
-    if not user_orders_ids:
-        await message.answer("Sizda hozircha buyurtma yoʻq.", reply_markup=main_menu_kb(message.from_user.id))
-        return
+@dp.message_handler(text="📋 Mening buyurtmalarim")
+async def my_orders(message: types.Message):
+    uid = str(message.from_user.id)
+    ensure_user(message.from_user.id, message.from_user)
 
-    texts = []
-    # Oxirgi 10 ta buyurtma, teskari tartibda
-    for oid in user_orders_ids[-10:][::-1]:
+    user_orders = users.get(uid, {}).get("orders", [])
+
+    if not user_orders:
+        return await message.answer("📭 Sizda buyurtmalar mavjud emas.", reply_markup=main_menu_kb(uid))
+
+    text = "🧾 *Sizning so‘nggi buyurtmalaringiz:*\n\n"
+
+    for oid in user_orders[-10:][::-1]:
         o = orders.get(oid)
         if not o:
             continue
-        created_ts = o.get('created_at', 0)
-        created_str = from datetime import datetime, timedelta
 
-def now_tashkent():
-    return (datetime.utcnow() + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
-        t = (f"ID: {o['id']}\n"
-             
-             f"Turi: {o['type']}\n"
-             f"Valyuta: {o['currency']}\n"
-             f"Miqdor: {o['amount']}\n"
-             f"Holat: {o.get('status','-')}\n"
-             f"Yaratilgan: {created_str}")
-        texts.append(t)
-    await message.answer("\n\n".join(texts), reply_markup=main_menu_kb(message.from_user.id))
+        # ✅ Toshkent vaqti bilan
+        created = o["created_at"] + 5 * 3600
+        date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(created))
+
+        text += (
+            f"ID: `{o['id']}`\n"
+            f"Turi: {o['type']}\n"
+            f"Valyuta: {o['currency']}\n"
+            f"Miqdor: {o['amount']}\n"
+            f"Holat: {o.get('status', '—')}\n"
+            f"Yaratilgan: {date_str}\n"
+            f"———————————————\n"
+        )
+
+    await message.answer(text, parse_mode="Markdown", reply_markup=main_menu_kb(uid))
 
 # --------------------
 # Buy (Sotib olish) — boshlash va tanlash
