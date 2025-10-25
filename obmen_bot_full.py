@@ -107,7 +107,7 @@ def new_order_id():
 def main_menu_kb(uid=None):
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     kb.row("💲 Sotib olish", "💰 Sotish")
-    kb.row("📋 Mening buyurtmalarim")
+    kb.row("📋 Mening buyurtmalarim", "📨 Adminga xabar yuborish")
     if uid and is_admin(uid):
         kb.add("⚙️ Admin Panel")
     return kb
