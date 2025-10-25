@@ -15,7 +15,7 @@ from aiogram.dispatcher import FSMContext
 # Sozlamalar (o'zgartiring: token va admin id ni o'zingizniki bilan almashtiring)
 # --------------------
 os.environ["TZ"] = "Asia/Tashkent"
-API_TOKEN = os.getenv("OBMEN_BOT_TOKEN", "7644659937:AAHnvt01ZKVtjQAb649QKQheWXPQQJVsitQ")
+API_TOKEN = os.getenv("OBMEN_BOT_TOKEN", "8023020606:AAE6DkCxcqmsV85VJSgMrB7evHs46hJ-Y9c")
 ADMIN_ID = int(os.getenv("OBMEN_ADMIN_ID", "7973934849"))
 
 # Foydali direktoriyalar/fayllar
@@ -175,7 +175,29 @@ async def cmd_start(message: types.Message):
         "Bu bot orqali valuta sotib olishingiz va sotishingiz mumkin.",
         reply_markup=main_menu_kb(message.from_user.id)
     )
+@dp.message_handler(commands=["start", "help"])
+async def cmd_start(message: types.Message):
 
+    uid = str(message.from_user.id)
+    is_new = uid not in users  # ✅ Foydalanuvchi yangi yoki yo‘qligini tekshiramiz
+
+    ensure_user(message.from_user.id, message.from_user)
+
+    # ✅ Agar yangi foydalanuvchi bo‘lsa — adminga xabar yuboramiz
+    if is_new:
+        await bot.send_message(
+            ADMIN_ID,
+            f"🎉 *Yangi obunachi qo‘shildi!*\n\n"
+            f"👤 Ism: {message.from_user.full_name}\n"
+            f"🆔 ID: {message.from_user.id}",
+            parse_mode="Markdown"
+        )
+
+    await message.answer(
+        f"Assalomu alaykum, {message.from_user.first_name}! 👋\n"
+        "Bu bot orqali valuta sotib olishingiz va sotishingiz mumkin.",
+        reply_markup=main_menu_kb(message.from_user.id)
+    )
 @dp.message_handler(lambda m: m.text == "📋 Mening buyurtmalarim")
 async def my_orders_handler(message: types.Message):
     uid = str(message.from_user.id)
