@@ -550,6 +550,61 @@ async def sell_upload_handler(message: types.Message, state: FSMContext):
     await state.finish()
 
 
+# -----------------------
+# 📋 Mening buyurtmalarim
+# -----------------------
+@dp.message_handler(text="📋 Mening buyurtmalarim")
+async def my_orders(message: types.Message):
+    uid = message.from_user.id
+    join_date = users_join_date.get(uid, "Noma'lum")
+
+    user_orders = orders.get(uid, [])
+
+    buy_count = sum(1 for o in user_orders if o["type"] == "Sotib olish")
+    sell_count = sum(1 for o in user_orders if o["type"] == "Sotish")
+
+    text = f"📋 *Mening ma'lumotlarim*\n\n" \
+           f"🗓 Botga qo‘shilgan sana: *{join_date}*\n" \
+           f"💲 Sotib olganlar soni: *{buy_count}*\n" \
+           f"💰 Sotganlar soni: *{sell_count}*\n\n"
+
+    if not user_orders:
+        text += "📭 Sizda hali buyurtmalar yo‘q."
+    else:
+        text += "🧾 Buyurtmalar ro‘yxati:\n"
+        for o in user_orders:
+            text += f"- {o['type']} | {o['amount']} {o['currency']} | {o['date']}\n"
+
+    await message.answer(text, parse_mode="Markdown", reply_markup=main_menu())
+
+
+# -----------------------
+# 📨 Adminga xabar
+# -----------------------
+@dp.message_handler(text="📨 Adminga xabar yuborish")
+async def contact_admin(message: types.Message):
+    await message.answer("✍️ Adminga yuboriladigan xabarni kiriting:", reply_markup=back_menu())
+    await ContactAdminFSM.wait_message.set()
+
+@dp.message_handler(state=ContactAdminFSM.wait_message)
+async def send_to_admin(message: types.Message, state: FSMContext):
+    if message.text == "⏹️ Bekor qilish":
+        await state.finish()
+        return await message.answer("Bekor qilindi ✅", reply_markup=main_menu())
+
+    await bot.send_message(
+        ADMIN_ID,
+        f"📨 Foydalanuvchidan xabar:\n"
+        f"👤 {message.from_user.full_name}\n"
+        f"🆔 {message.from_user.id}\n\n"
+        f"💬 {message.text}"
+    )
+
+    await state.finish()
+    await message.answer("✅ Xabar adminga yuborildi.", reply_markup=main_menu())
+
+
+
 # --------------------
 # Admin — buyurtmani tasdiqlash / bekor qilish
 # --------------------
