@@ -193,8 +193,12 @@ async def my_orders_handler(message: types.Message):
         if not o:
             continue
         created_ts = o.get('created_at', 0)
-        created_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(created_ts)) if created_ts else "-"
+        created_str = from datetime import datetime, timedelta
+
+def now_tashkent():
+    return (datetime.utcnow() + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
         t = (f"ID: {o['id']}\n"
+             
              f"Turi: {o['type']}\n"
              f"Valyuta: {o['currency']}\n"
              f"Miqdor: {o['amount']}\n"
