@@ -3,32 +3,33 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
 
-# 🔹 Bot tokenini shu yerga yozing
+# 🔹 O‘zingizning bot tokeningizni yozing
 TOKEN = "8023020606:AAG1YTskBetuK-020LTvOPf6N6aiGIh4nPo"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-CHAT_ID = 1087968824
-sending_messages = False  # holat (boshlangan yoki to‘xtagan)
+# 🔹 Global o‘zgaruvchilar
+CHAT_ID = None
+MESSAGE_TEXT = None
+sending_active = False
 
 
 # 🔹 Tugmalar
-def control_buttons():
+def main_buttons():
     keyboard = InlineKeyboardMarkup()
-    if not sending_messages:
-        keyboard.add(InlineKeyboardButton("🟢 Xabar yuborishni boshlash", callback_data='start_sending'))
-    else:
-        keyboard.add(InlineKeyboardButton("🔴 Xabar yuborishni to‘xtatish", callback_data='stop_sending'))
+    keyboard.add(InlineKeyboardButton("📝 Xabar matnini kiritish", callback_data='enter_text'))
+    if MESSAGE_TEXT:
+        keyboard.add(InlineKeyboardButton("✅ Tasdiqlash va yuborishni boshlash", callback_data='confirm'))
     return keyboard
 
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
     await message.reply(
-        "👋 Salom! Bu bot har 1 daqiqada xabar yuborishi mumkin.\n"
-        "Quyidagi tugma orqali avtomatik xabar yuborishni yoqing yoki o‘chiring 👇",
-        reply_markup=control_buttons()
+        "👋 Salom! Men guruhga har 1 daqiqada siz belgilagan xabarni yuboradigan botman.\n"
+        "Quyidagi tugmalar orqali xabar matnini tanlang 👇",
+        reply_markup=main_buttons()
     )
 
 
@@ -36,37 +37,48 @@ async def start_command(message: types.Message):
 async def get_chat_id(message: types.Message):
     global CHAT_ID
     CHAT_ID = message.chat.id
-    await message.reply(f"✅ Guruh/Chat ID aniqlandi: `{CHAT_ID}`")
-    print(f"[INFO] Chat ID: {CHAT_ID}")
+    print(f"[INFO] Guruh/Chat ID: {CHAT_ID}")
 
 
-@dp.callback_query_handler(lambda c: c.data == 'start_sending')
-async def start_sending_messages(callback_query: types.CallbackQuery):
-    global sending_messages
-    sending_messages = True
-    await callback_query.message.edit_reply_markup(reply_markup=control_buttons())
-    await bot.send_message(callback_query.message.chat.id, "🟢 Xabar yuborish boshlandi!")
+@dp.callback_query_handler(lambda c: c.data == 'enter_text')
+async def ask_for_text(callback_query: types.CallbackQuery):
+    await callback_query.message.edit_text(
+        "✍️ Iltimos, yuboriladigan xabar matnini kiriting:",
+    )
+
+    @dp.message_handler(lambda m: True, content_types=types.ContentType.TEXT)
+    async def save_message_text(message: types.Message):
+        global MESSAGE_TEXT
+        MESSAGE_TEXT = message.text
+        await message.answer(
+            f"✅ Xabar matni saqlandi:\n\n`{MESSAGE_TEXT}`",
+            reply_markup=main_buttons()
+        )
+        dp.message_handlers.unregister(save_message_text)  # qayta yozmasligi uchun tozalaymiz
+
+
+@dp.callback_query_handler(lambda c: c.data == 'confirm')
+async def confirm_sending(callback_query: types.CallbackQuery):
+    global sending_active
+    if not MESSAGE_TEXT:
+        await bot.send_message(callback_query.message.chat.id, "❌ Avval xabar matnini kiriting.")
+        return
+
+    sending_active = True
+    await bot.send_message(callback_query.message.chat.id,
+                           f"✅ Yuborish boshlandi!\nHar 1 daqiqada quyidagi xabar yuboriladi:\n\n`{MESSAGE_TEXT}`")
     asyncio.create_task(send_message_every_minute())
 
 
-@dp.callback_query_handler(lambda c: c.data == 'stop_sending')
-async def stop_sending_messages(callback_query: types.CallbackQuery):
-    global sending_messages
-    sending_messages = False
-    await callback_query.message.edit_reply_markup(reply_markup=control_buttons())
-    await bot.send_message(callback_query.message.chat.id, "🔴 Xabar yuborish to‘xtatildi.")
-
-
 async def send_message_every_minute():
-    """Har 1 daqiqada xabar yuborish jarayoni"""
-    global sending_messages, CHAT_ID
-    while sending_messages:
-        if CHAT_ID:
-            try:
-                await bot.send_message(CHAT_ID, "⏰ Har 1 daqiqada yuboriladigan avtomatik xabar!")
-            except Exception as e:
-                print(f"Xabar yuborishda xatolik: {e}")
-        await asyncio.sleep(60)
+    """Har 1 daqiqada avtomatik xabar yuborish"""
+    global CHAT_ID, MESSAGE_TEXT, sending_active
+    while sending_active and CHAT_ID and MESSAGE_TEXT:
+        try:
+            await bot.send_message(CHAT_ID, MESSAGE_TEXT)
+        except Exception as e:
+            print(f"Xabar yuborishda xatolik: {e}")
+        await asyncio.sleep(60)  # 1 daqiqa
 
 
 async def on_startup(_):
