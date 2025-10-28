@@ -60,7 +60,7 @@ def auto_sender():
                                    caption=message_to_send[2], reply_markup=message_to_send[3])
             except Exception as e:
                 print(f"Xatolik: {e}")
-        time.sleep(30)
+        time.sleep(1)
 
 
 def stop(update: Update, context: CallbackContext):
