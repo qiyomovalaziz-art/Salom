@@ -2,11 +2,12 @@ import time
 import threading
 from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import re
 
-# 🔑 Bot token
+# 🔑 Token
 TOKEN = "8023020606:AAHx3KQrsPF5ypxE96scoPw1LSaLyfhLECs"
 
-# 📢 Guruhlar (10 tagacha)
+# 📢 Guruhlar
 GROUP_USERNAMES = [
     "@pubg_uzbchat1",
     "@sarmoyasiz_pulkopaytrish",
@@ -17,15 +18,17 @@ GROUP_USERNAMES = [
     "@reklama_guruh5",
     "@reklama_guruh6",
     "@reklama_guruh7",
-    "@reklama_guruh8"
 ]
 
-# 👑 Faqat admin xabar yuboradi
+# 👑 Faqat sizning ID
 ADMIN_ID = 7973934849
 
 bot = Bot(token=TOKEN)
 auto_send = False
 message_to_send = None
+
+# ⏱ Flood control holatini saqlash
+blocked_groups = {}  # {group_username: time_to_retry}
 
 
 def start(update: Update, context: CallbackContext):
@@ -43,7 +46,7 @@ def save_message(update: Update, context: CallbackContext):
     message_id = update.message.message_id
 
     message_to_send = (chat_id, message_id)
-    update.message.reply_text("📸 Xabar saqlandi. Bot har 35 sekundda barcha guruhlarga yuboradi.")
+    update.message.reply_text("📸 Xabar saqlandi. Bot avtomatik ravishda yuborishni boshlaydi.")
     start_auto_send()
 
 
@@ -55,19 +58,42 @@ def start_auto_send():
 
 
 def auto_sender():
-    global auto_send, message_to_send
+    """Flood controlni hisobga olgan holda xabar yuboradi"""
+    global auto_send, message_to_send, blocked_groups
     while auto_send:
         if message_to_send:
             from_chat_id, message_id = message_to_send
+            current_time = time.time()
+
             for group in GROUP_USERNAMES:
+                # Agar guruh hozircha bloklangan bo‘lsa — o‘tkazib yubor
+                if group in blocked_groups and current_time < blocked_groups[group]:
+                    continue
+
                 try:
                     bot.forward_message(chat_id=group, from_chat_id=from_chat_id, message_id=message_id)
                     print(f"✅ {group} guruhiga yuborildi.")
+                    time.sleep(10)  # har guruh orasida 10 soniya kutish
                 except Exception as e:
-                    print(f"⚠️ Xatolik {group} guruhida: {e}")
-                time.sleep(35)  # Telegram flood limitdan o‘tmaslik uchun
-        else:
-            time.sleep(5)
+                    error_message = str(e)
+                    print(f"⚠️ Xatolik {group} guruhida: {error_message}")
+
+                    # Flood limitni aniqlab, qancha sekund kutish kerakligini topamiz
+                    if "Flood control exceeded" in error_message:
+                        match = re.search(r"Retry in (\d+)", error_message)
+                        if match:
+                            wait_seconds = int(match.group(1))
+                            blocked_groups[group] = current_time + wait_seconds
+                            print(f"⏳ {group} uchun {wait_seconds} soniyaga kutish belgilandi.")
+                        else:
+                            blocked_groups[group] = current_time + 600  # agar aniqlanmasa 10 daqiqa
+                    elif "Chat not found" in error_message:
+                        print(f"🚫 {group} topilmadi — o‘tkazib yuborildi.")
+                        blocked_groups[group] = current_time + 3600  # 1 soatga blok
+                    else:
+                        blocked_groups[group] = current_time + 120  # boshqa xato — 2 daqiqa kutish
+
+        time.sleep(5)
 
 
 def stop(update: Update, context: CallbackContext):
@@ -75,7 +101,7 @@ def stop(update: Update, context: CallbackContext):
     if update.message.from_user.id != ADMIN_ID:
         return
     auto_send = False
-    update.message.reply_text("⏹️ Yuborish to‘xtatildi.")
+    update.message.reply_text("⏹️ Avtomatik yuborish to‘xtatildi.")
 
 
 def main():
