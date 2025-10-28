@@ -1,43 +1,68 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import asyncio
+import time
+import threading
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-BOT_TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
+TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
+GROUP_USERNAME = "@pubg_uzbchat1"  # Masalan: "@MyGroupName"
 
-# Xabar matni
-saved_message = None
+bot = Bot(token=TOKEN)
+auto_send = False
+message_to_send = None
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✏️ Iltimos, yuboriladigan xabar matnini kiriting:")
 
-async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global saved_message
-    saved_message = update.message.text
-    await update.message.reply_text("✅ Xabar saqlandi! Endi 1 daqiqada bir marta barcha guruhlarga yuboriladi.")
-    asyncio.create_task(send_to_all_groups(context))
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("👋 Salom! Menga yubormoqchi bo‘lgan xabaringni (matn yoki rasm bilan) yubor.")
 
-async def send_to_all_groups(context: ContextTypes.DEFAULT_TYPE):
-    global saved_message
 
-    while True:
-        updates = await context.bot.get_updates()
-        group_ids = set()
+def save_message(update: Update, context: CallbackContext):
+    global message_to_send
+    if update.message.photo:
+        photo = update.message.photo[-1].file_id
+        caption = update.message.caption if update.message.caption else ""
+        message_to_send = ("photo", photo, caption)
+        update.message.reply_text("📸 Rasmli xabar qabul qilindi. Bot uni har 30 sekundda guruhga yuboradi.")
+    else:
+        message_to_send = ("text", update.message.text)
+        update.message.reply_text("✉️ Matnli xabar qabul qilindi. Bot uni har 30 sekundda guruhga yuboradi.")
+    start_auto_send()
 
-        for update in updates:
-            if update.message and update.message.chat.type in ["group", "supergroup"]:
-                group_ids.add(update.message.chat.id)
 
-        for chat_id in group_ids:
-            try:
-                await context.bot.send_message(chat_id=chat_id, text=saved_message)
-            except Exception as e:
-                print(f"Guruhga yuborishda xato: {e}")
+def start_auto_send():
+    global auto_send
+    if not auto_send:
+        auto_send = True
+        threading.Thread(target=auto_sender, daemon=True).start()
 
-        await asyncio.sleep(60)  # 1 daqiqa kutadi
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+def auto_sender():
+    global auto_send, message_to_send
+    while auto_send:
+        if message_to_send:
+            if message_to_send[0] == "text":
+                bot.send_message(chat_id=GROUP_USERNAME, text=message_to_send[1])
+            elif message_to_send[0] == "photo":
+                bot.send_photo(chat_id=GROUP_USERNAME, photo=message_to_send[1], caption=message_to_send[2])
+        time.sleep(30)
 
-print("✅ Bot ishga tushdi...")
-app.run_polling()
+
+def stop(update: Update, context: CallbackContext):
+    global auto_send
+    auto_send = False
+    update.message.reply_text("⏹️ Avtomatik yuborish to‘xtatildi.")
+
+
+def main():
+    updater = Updater(TOKEN)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("stop", stop))
+    dp.add_handler(MessageHandler(Filters.text | Filters.photo, save_message))
+
+    updater.start_polling()
+    updater.idle()
+
+
+if __name__ == "__main__":
+    main()
