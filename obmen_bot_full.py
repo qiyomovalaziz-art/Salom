@@ -3,24 +3,20 @@ import threading
 from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# 🔑 Bot tokeni
+# 🔑 Bot token
 TOKEN = "8023020606:AAHx3KQrsPF5ypxE96scoPw1LSaLyfhLECs"
 
-# 📢 10 tagacha guruh username
-GROUP_USERNAMES = [
+# 📢 Guruhlar (username yoki ID ko‘rinishida)
+GROUPS = [
     "@pubg_uzbchat1",
     "@sarmoyasiz_pulkopaytrish",
     "@pubg_chat_uzbbb",
     "@PUBG_MOBILE_SAVDO_2025",
-    "@reklama_guruh3",
-    "@reklama_guruh4",
-    "@reklama_guruh5",
-    "@reklama_guruh6",
-    "@reklama_guruh7",
-    "@reklama_guruh8"
+    "-1001234567890",   # private guruh misoli (ID bilan)
+    "@reklama_guruh3"
 ]
 
-# 👑 Faqat sizning Telegram ID
+# 👑 Faqat bitta admin ID
 ADMIN_ID = 7973934849
 
 bot = Bot(token=TOKEN)
@@ -29,25 +25,23 @@ message_to_send = None
 
 
 def start(update: Update, context: CallbackContext):
-    """Start komandasi"""
+    """Boshlanish komandasi"""
     if update.message.from_user.id != ADMIN_ID:
         return
-    update.message.reply_text(
-        "✏️ Guruhlarga yuboriladigan xabarni yuboring (rasm, video yoki matn bo‘lishi mumkin)."
-    )
+    update.message.reply_text("📩 Guruhlarga yuboriladigan xabarni yuboring (rasm, video yoki matn).")
 
 
 def save_message(update: Update, context: CallbackContext):
-    """Admin yuborgan xabarni saqlash"""
+    """Admin yuborgan xabarni saqlaydi"""
     global message_to_send
     if update.message.from_user.id != ADMIN_ID:
-        return  # Faqat admin yuborgan xabarni oladi
+        return
 
     chat_id = update.message.chat_id
     message_id = update.message.message_id
-
     message_to_send = (chat_id, message_id)
-    update.message.reply_text("📸 Xabar saqlandi. Har 30 sekundda guruhlarga yuboriladi.")
+
+    update.message.reply_text("✅ Xabar saqlandi. Har 30 sekundda guruhlarga yuboriladi.")
     start_auto_send()
 
 
@@ -60,23 +54,23 @@ def start_auto_send():
 
 
 def auto_sender():
-    """Har 30 sekundda saqlangan xabarni 10 tagacha guruhga yuboradi"""
+    """Har 30 sekundda xabar yuboradi"""
     global auto_send, message_to_send
     while auto_send:
         if message_to_send:
             from_chat_id, message_id = message_to_send
-            for group in GROUP_USERNAMES:
+            for group in GROUPS:
                 try:
                     bot.forward_message(chat_id=group, from_chat_id=from_chat_id, message_id=message_id)
-                    print(f"✅ {group} guruhiga yuborildi.")
-                    time.sleep(5)  # har bir guruhga yuborish orasida 5 soniya kutish (Flood bo‘lmasin)
+                    print(f"✅ Xabar yuborildi → {group}")
+                    time.sleep(3)  # har guruh orasida 3 soniya tanaffus
                 except Exception as e:
-                    print(f"⚠️ Xatolik {group} guruhida: {e}")
-        time.sleep(30)  # 30 soniyadan so‘ng yana takrorlaydi
+                    print(f"⚠️ {group} guruhida xato: {e}")
+        time.sleep(30)  # Har 30 sekundda qayta yuboriladi
 
 
 def stop(update: Update, context: CallbackContext):
-    """Yuborishni to‘xtatish"""
+    """Avtomatik yuborishni to‘xtatish"""
     global auto_send
     if update.message.from_user.id != ADMIN_ID:
         return
@@ -86,13 +80,14 @@ def stop(update: Update, context: CallbackContext):
 
 def main():
     """Botni ishga tushirish"""
-    updater = Updater(TOKEN, use_context=True)
+    updater = Updater(TOKEN)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("stop", stop))
     dp.add_handler(MessageHandler(Filters.all, save_message))
 
+    print("🚀 Bot ishga tushdi...")
     updater.start_polling()
     updater.idle()
 
