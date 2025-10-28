@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 # ⚙️ Sozlamalar
 TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
-GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish", "@yana_bir_guruh"]  # Guruhlar ro'yxati
+GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish", "@sarmoyasiz_pul_ishlash_yolari"]  # Guruhlar ro'yxati
 ADMIN_ID = 7973934849  # Faqat sizning Telegram ID'ingiz
 
 bot = Bot(token=TOKEN)
