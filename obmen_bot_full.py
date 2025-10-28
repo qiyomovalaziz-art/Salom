@@ -3,13 +3,13 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
 # 🔹 Tokenni shu yerga yozing
-TOKEN = "BOT_TOKENINGIZNI_BUYERGA_YOZING"
+TOKEN = "8023020606:AAG1YTskBetuK-020LTvOPf6N6aiGIh4nPo"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
 # 🔹 Global o'zgaruvchilar
-CHAT_ID = None
+CHAT_ID = 1087968824
 INTERVAL = 1  # daqiqa (standart)
 MESSAGE_TEXT = "🔔 Salom guruh! Bu avtomatik yuborilgan xabar."  # standart xabar
 
