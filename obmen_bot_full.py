@@ -10,7 +10,6 @@ TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
 GROUP_USERNAMES = [
     "@pubg_uzbchat1",
     "@sarmoyasiz_pulkopaytrish",
-    "@sarmoyasiz_pul_ishlash_yolari",
     "@pubg_chat_uzbbb",
     "@PUBG_MOBILE_SAVDO_2025",
     "@reklama_guruh3",
