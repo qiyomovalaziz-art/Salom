@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 # ⚙️ Sozlamalar
 TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
-GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish", "@sarmoyasiz_pul_ishlash_yolari"]  # Guruhlar ro'yxati
+GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish"]  # Guruhlar ro'yxati
 ADMIN_ID = 7973934849  # Faqat sizning Telegram ID'ingiz
 
 bot = Bot(token=TOKEN)
@@ -16,36 +16,36 @@ message_to_send = None
 def start(update: Update, context: CallbackContext):
     """Start komandasi"""
     if update.message.from_user.id != ADMIN_ID:
-        return
+        return  # Faqat admin ishlata oladi
     update.message.reply_text("✏️ Guruhlarga yuboriladigan xabarni (matn yoki rasm) yuboring.")
 
 
 def save_message(update: Update, context: CallbackContext):
-    """Admin yuborgan xabarni saqlaydi"""
+    """Faqat admin yuborgan xabarni saqlaydi"""
     global message_to_send
     if update.message.from_user.id != ADMIN_ID:
         return  # Faqat admin yuborganini oladi
 
-    if update.message.photo:
+    if update.message.photo:  # agar rasm bo‘lsa
         photo = update.message.photo[-1].file_id
         caption = update.message.caption if update.message.caption else ""
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/Curupto_SotibOlish_SotishBot")]
         ])
         message_to_send = ("photo", photo, caption, keyboard)
-        update.message.reply_text("📸 Rasmli xabar saqlandi va har 1 sekundda yuboriladi.")
-    else:
+        update.message.reply_text("📸 Rasmli xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
+    else:  # faqat matn bo‘lsa
         text = update.message.text
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/Curupto_SotibOlish_SotishBot")]
         ])
         message_to_send = ("text", text, keyboard)
-        update.message.reply_text("✉️ Matnli xabar saqlandi va har 1 sekundda yuboriladi.")
+        update.message.reply_text("✉️ Matnli xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
     start_auto_send()
 
 
 def start_auto_send():
-    """Yuborish jarayonini ishga tushiradi"""
+    """Yuborishni ishga tushiradi"""
     global auto_send
     if not auto_send:
         auto_send = True
@@ -53,7 +53,7 @@ def start_auto_send():
 
 
 def auto_sender():
-    """Har 1 sekundda guruhlarga xabar yuboradi"""
+    """Har 1 sekundda guruhlarga yuborish"""
     global auto_send, message_to_send
     while auto_send:
         if message_to_send:
@@ -66,7 +66,7 @@ def auto_sender():
                                        caption=message_to_send[2], reply_markup=message_to_send[3])
                 except Exception as e:
                     print(f"Xatolik {group} guruhida: {e}")
-        time.sleep(1)  # har 1 sekundda
+        time.sleep(1)  # 1 sekundda bir marta
 
 
 def stop(update: Update, context: CallbackContext):
