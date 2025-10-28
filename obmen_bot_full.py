@@ -4,7 +4,7 @@ from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
-GROUP_USERNAME = "@pubg_uzbchat1 ,@sarmoyasiz_pulkopaytrish"  # Masalan: @MyGroupName
+GROUP_USERNAME = "@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish"  # Masalan: @MyGroupName
 ADMIN_ID = 7973934849  # Faqat sizning Telegram ID'ingizni yozing
 
 bot = Bot(token=TOKEN)
