@@ -1,12 +1,11 @@
 import time
 import threading
-from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# ⚙️ Sozlamalar
 TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
-GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish", "@pubg_chat_uzbbb"]  # Guruhlar ro'yxati
-ADMIN_ID = 7973934849  # Faqat sizning Telegram ID'ingiz
+GROUP_USERNAMES = ["@pubg_uzbchat1", "@sarmoyasiz_pulkopaytrish"]
+ADMIN_ID = 7973934849  # Faqat sizning ID
 
 bot = Bot(token=TOKEN)
 auto_send = False
@@ -14,38 +13,25 @@ message_to_send = None
 
 
 def start(update: Update, context: CallbackContext):
-    """Start komandasi"""
     if update.message.from_user.id != ADMIN_ID:
-        return  # Faqat admin ishlata oladi
-    update.message.reply_text("✏️ Guruhlarga yuboriladigan xabarni (matn yoki rasm) yuboring.")
+        return
+    update.message.reply_text("✏️ Guruhlarga yuboriladigan xabarni yuboring (rasm, video yoki matn bo‘lishi mumkin).")
 
 
 def save_message(update: Update, context: CallbackContext):
-    """Faqat admin yuborgan xabarni saqlaydi"""
     global message_to_send
     if update.message.from_user.id != ADMIN_ID:
-        return  # Faqat admin yuborganini oladi
+        return
 
-    if update.message.photo:  # agar rasm bo‘lsa
-        photo = update.message.photo[-1].file_id
-        caption = update.message.caption if update.message.caption else ""
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/Curupto_SotibOlish_SotishBot")]
-        ])
-        message_to_send = ("photo", photo, caption, keyboard)
-        update.message.reply_text("📸 Rasmli xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
-    else:  # faqat matn bo‘lsa
-        text = update.message.text
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/Curupto_SotibOlish_SotishBot")]
-        ])
-        message_to_send = ("text", text, keyboard)
-        update.message.reply_text("✉️ Matnli xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
+    chat_id = update.message.chat_id
+    message_id = update.message.message_id
+
+    message_to_send = (chat_id, message_id)
+    update.message.reply_text("📸 Xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
     start_auto_send()
 
 
 def start_auto_send():
-    """Yuborishni ishga tushiradi"""
     global auto_send
     if not auto_send:
         auto_send = True
@@ -53,24 +39,19 @@ def start_auto_send():
 
 
 def auto_sender():
-    """Har 1 sekundda guruhlarga yuborish"""
     global auto_send, message_to_send
     while auto_send:
         if message_to_send:
+            from_chat_id, message_id = message_to_send
             for group in GROUP_USERNAMES:
                 try:
-                    if message_to_send[0] == "text":
-                        bot.send_message(chat_id=group, text=message_to_send[1], reply_markup=message_to_send[2])
-                    elif message_to_send[0] == "photo":
-                        bot.send_photo(chat_id=group, photo=message_to_send[1],
-                                       caption=message_to_send[2], reply_markup=message_to_send[3])
+                    bot.forward_message(chat_id=group, from_chat_id=from_chat_id, message_id=message_id)
                 except Exception as e:
                     print(f"Xatolik {group} guruhida: {e}")
-        time.sleep(1)  # 1 sekundda bir marta
+        time.sleep(1)  # bu joyni 30 qilsang 30 sekundda yuboradi
 
 
 def stop(update: Update, context: CallbackContext):
-    """To‘xtatish komandasi"""
     global auto_send
     if update.message.from_user.id != ADMIN_ID:
         return
@@ -79,13 +60,12 @@ def stop(update: Update, context: CallbackContext):
 
 
 def main():
-    """Botni ishga tushirish"""
     updater = Updater(TOKEN)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("stop", stop))
-    dp.add_handler(MessageHandler(Filters.text | Filters.photo, save_message))
+    dp.add_handler(MessageHandler(Filters.all, save_message))
 
     updater.start_polling()
     updater.idle()
