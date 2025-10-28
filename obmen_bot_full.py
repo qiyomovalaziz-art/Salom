@@ -1,95 +1,94 @@
+from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    CallbackQueryHandler, filters, ContextTypes
+)
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils import executor
 
-TOKEN = "8023020606:AAG1YTskBetuK-020LTvOPf6N6aiGIh4nPo"
-GROUP_ID = -100234567890  # Guruh ID-ni shu yerga yozing
-
+TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"  # bu yerga tokeningizni yozing
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
 
-saved_message = None
-sending_active = False
-waiting_for_message = False
-
-
-def main_buttons():
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("📝 Xabarni kiritish", callback_data="enter_message"))
-    if saved_message:
-        keyboard.add(InlineKeyboardButton("✅ Tasdiqlash va yuborishni boshlash", callback_data="confirm"))
-    if sending_active:
-        keyboard.add(InlineKeyboardButton("🛑 To‘xtatish", callback_data="stop"))
-    return keyboard
+group_id = None
+message_text = None
+auto_send_task = None
+sending = False
 
 
-@dp.message_handler(commands=["start"])
-async def start(message: types.Message):
-    await message.reply(
-        "👋 Salom! Men har 1 daqiqada siz yuborgan postni guruhga yuboraman.\n"
-        "📝 Tugmadan foydalanib postni yuboring (rasm, video yoki matn bo‘lishi mumkin):",
-        reply_markup=main_buttons()
-    )
+# /start komandasi
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✏️ Iltimos, yuboriladigan xabar matnini kiriting:")
+    return
 
 
-@dp.callback_query_handler(lambda c: c.data == "enter_message")
-async def ask_for_post(callback_query: types.CallbackQuery):
-    global waiting_for_message
-    waiting_for_message = True
-    await callback_query.message.edit_text("✍️ Iltimos, guruhga yuboriladigan xabarni yuboring (rasm, video yoki matn bo‘lishi mumkin):")
+# Foydalanuvchi yozgan matnni saqlash
+async def save_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global message_text
+    message_text = update.message.text
+
+    keyboard = [[InlineKeyboardButton("✅ Tasdiqlash va yuborishni boshlash", callback_data="start_send")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(f"✅ Xabar saqlandi:\n\n{message_text}", reply_markup=reply_markup)
 
 
-@dp.message_handler(content_types=types.ContentType.ANY)
-async def get_post(message: types.Message):
-    global saved_message, waiting_for_message
-    if waiting_for_message:
-        saved_message = message
-        waiting_for_message = False
-        await message.answer("✅ Xabar saqlandi! Endi uni yuborishni boshlashingiz mumkin.", reply_markup=main_buttons())
+# Guruhni aniqlash (bot guruhga qo‘shilganda)
+async def detect_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global group_id
+    chat = update.message.chat
+    if chat.type in ["group", "supergroup"]:
+        group_id = chat.id
+        await update.message.reply_text("✅ Guruh aniqlandi! Endi siz botdan yuborishni boshlashingiz mumkin.")
+    return
 
 
-@dp.callback_query_handler(lambda c: c.data == "confirm")
-async def confirm(callback_query: types.CallbackQuery):
-    global sending_active
-    if not saved_message:
-        await bot.send_message(callback_query.message.chat.id, "❌ Avval post yuboring.")
-        return
-
-    sending_active = True
-    await bot.send_message(callback_query.message.chat.id, "✅ Post yuborish boshlandi! Har 1 daqiqada guruhga yuboriladi.", reply_markup=main_buttons())
-    asyncio.create_task(send_post_every_minute())
-
-
-@dp.callback_query_handler(lambda c: c.data == "stop")
-async def stop(callback_query: types.CallbackQuery):
-    global sending_active
-    sending_active = False
-    await bot.send_message(callback_query.message.chat.id, "🛑 Post yuborish to‘xtatildi.", reply_markup=main_buttons())
-
-
-async def send_post_every_minute():
-    global sending_active, saved_message
-    while sending_active and saved_message:
+# Har 1 daqiqada xabar yuborish funksiyasi
+async def send_periodic():
+    global bot, group_id, message_text, sending
+    while sending:
         try:
-            # Agar rasm, video yoki boshqa fayl bo‘lsa forward qilamiz
-            if saved_message.photo:
-                await bot.send_photo(GROUP_ID, saved_message.photo[-1].file_id, caption=saved_message.caption or "")
-            elif saved_message.video:
-                await bot.send_video(GROUP_ID, saved_message.video.file_id, caption=saved_message.caption or "")
-            elif saved_message.text:
-                await bot.send_message(GROUP_ID, saved_message.text)
-            else:
-                await bot.forward_message(GROUP_ID, saved_message.chat.id, saved_message.message_id)
+            if group_id and message_text:
+                await bot.send_message(chat_id=group_id, text=message_text)
         except Exception as e:
-            print(f"Xabar yuborishda xatolik: {e}")
-
-        await asyncio.sleep(60)  # 1 daqiqa kutish
-
-
-async def on_startup(_):
-    print("✅ Bot ishga tushdi.")
+            print("Xatolik:", e)
+        await asyncio.sleep(60)
 
 
-if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+# Tugma bosilganda ishlovchi funksiya
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global sending, auto_send_task
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "start_send":
+        if not sending:
+            sending = True
+            auto_send_task = asyncio.create_task(send_periodic())
+
+            keyboard = [[InlineKeyboardButton("🛑 To‘xtatish", callback_data="stop_send")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await query.edit_message_text("✅ Post yuborish boshlandi! Har 1 daqiqada guruhga yuboriladi.", reply_markup=reply_markup)
+
+    elif query.data == "stop_send":
+        sending = False
+        if auto_send_task:
+            auto_send_task.cancel()
+
+        keyboard = [[InlineKeyboardButton("✅ Qaytadan boshlash", callback_data="start_send")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text("🛑 Post yuborish to‘xtatildi.", reply_markup=reply_markup)
+
+
+# Botni ishga tushirish
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_message))
+app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, detect_group))
+app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, detect_group))
+app.add_handler(CallbackQueryHandler(button_callback))
+
+print("🤖 Bot ishga tushdi...")
+app.run_polling()
