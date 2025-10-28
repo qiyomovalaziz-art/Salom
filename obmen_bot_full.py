@@ -6,7 +6,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 # 🔑 Bot tokeni
 TOKEN = "8023020606:AAEmI5pl2JF7spmfSmqVQ8SRXzSqsbN8Rpk"
 
-# 📢 10 tagacha guruh username (public guruhlar)
+# 📢 10 tagacha guruh username
 GROUP_USERNAMES = [
     "@pubg_uzbchat1",
     "@sarmoyasiz_pulkopaytrish",
@@ -16,10 +16,11 @@ GROUP_USERNAMES = [
     "@reklama_guruh4",
     "@reklama_guruh5",
     "@reklama_guruh6",
-    "@reklama_guruh7"
+    "@reklama_guruh7",
+    "@reklama_guruh8"
 ]
 
-# 👑 Admin ID (faqat siz yuborgan xabarni qabul qiladi)
+# 👑 Faqat sizning Telegram ID
 ADMIN_ID = 7973934849
 
 bot = Bot(token=TOKEN)
@@ -40,13 +41,13 @@ def save_message(update: Update, context: CallbackContext):
     """Admin yuborgan xabarni saqlash"""
     global message_to_send
     if update.message.from_user.id != ADMIN_ID:
-        return
+        return  # Faqat admin yuborgan xabarni oladi
 
     chat_id = update.message.chat_id
     message_id = update.message.message_id
 
     message_to_send = (chat_id, message_id)
-    update.message.reply_text("📸 Xabar saqlandi. Har 1 sekundda guruhlarga yuboriladi.")
+    update.message.reply_text("📸 Xabar saqlandi. Har 30 sekundda guruhlarga yuboriladi.")
     start_auto_send()
 
 
@@ -59,7 +60,7 @@ def start_auto_send():
 
 
 def auto_sender():
-    """Har 1 sekundda saqlangan xabarni 10 tagacha guruhga yuboradi"""
+    """Har 30 sekundda saqlangan xabarni 10 tagacha guruhga yuboradi"""
     global auto_send, message_to_send
     while auto_send:
         if message_to_send:
@@ -67,10 +68,11 @@ def auto_sender():
             for group in GROUP_USERNAMES:
                 try:
                     bot.forward_message(chat_id=group, from_chat_id=from_chat_id, message_id=message_id)
-                    print(f"{group} guruhiga yuborildi ✅")
+                    print(f"✅ {group} guruhiga yuborildi.")
+                    time.sleep(5)  # har bir guruhga yuborish orasida 5 soniya kutish (Flood bo‘lmasin)
                 except Exception as e:
                     print(f"⚠️ Xatolik {group} guruhida: {e}")
-        time.sleep(10)  # bu joyni 30 qilsang 30 sekundda yuboradi
+        time.sleep(30)  # 30 soniyadan so‘ng yana takrorlaydi
 
 
 def stop(update: Update, context: CallbackContext):
@@ -84,7 +86,7 @@ def stop(update: Update, context: CallbackContext):
 
 def main():
     """Botni ishga tushirish"""
-    updater = Updater(TOKEN)
+    updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
