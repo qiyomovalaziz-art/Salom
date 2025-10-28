@@ -27,7 +27,7 @@ def save_message(update: Update, context: CallbackContext):
         photo = update.message.photo[-1].file_id
         caption = update.message.caption if update.message.caption else ""
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/YOUR_BOT_USERNAME")]
+            [InlineKeyboardButton("🤖 Botga kirish", url="https://t.me/Curupto_SotibOlish_SotishBot")]
         ])
         message_to_send = ("photo", photo, caption, keyboard)
         update.message.reply_text("📸 Rasmli xabar qabul qilindi. Har 30 sekundda guruhga yuboriladi.")
