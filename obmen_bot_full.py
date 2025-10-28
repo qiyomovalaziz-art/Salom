@@ -71,7 +71,7 @@ def auto_sender():
                     print(f"{group} guruhiga yuborildi ✅")
                 except Exception as e:
                     print(f"⚠️ Xatolik {group} guruhida: {e}")
-        time.sleep(1)  # bu joyni 30 qilsang 30 sekundda yuboradi
+        time.sleep(10)  # bu joyni 30 qilsang 30 sekundda yuboradi
 
 
 def stop(update: Update, context: CallbackContext):
