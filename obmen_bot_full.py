@@ -13,7 +13,7 @@ GROUP_USERNAMES = [
     "@sarmoyasiz_pulkopaytrish",
     "@pubg_chat_uzbbb",
     "@PUBG_MOBILE_SAVDO_2025",
-    "@reklama_guruh3",
+    "@sarmoyasiz_pul_ishlash_yolari",
     "@reklama_guruh4",
     "@reklama_guruh5",
     "@reklama_guruh6",
