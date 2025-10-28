@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
 
 TOKEN = "8023020606:AAG1YTskBetuK-020LTvOPf6N6aiGIh4nPo"
-GROUP_ID = -1087968824  # Guruh ID-ni shu yerga yozing
+GROUP_ID = -100234567890  # Guruh ID-ni shu yerga yozing
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
